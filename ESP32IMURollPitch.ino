@@ -157,7 +157,6 @@ void loop() {
       }
     }
   }
-
 }
 
 void calculate_IMU_error() {
