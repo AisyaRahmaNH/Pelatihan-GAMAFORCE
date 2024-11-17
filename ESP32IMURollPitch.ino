@@ -14,6 +14,7 @@ int c = 0;
 SoftwareSerial telemetrySerial(16, 17); // RX, TX
 
 void setup() {
+  Serial.begin(19200);
   telemetrySerial.begin(57600);  
   Wire.begin();
   Wire.beginTransmission(MPU);
@@ -157,6 +158,61 @@ void loop() {
       }
     }
   }
+
+  //Print values to Serial Monitor
+  Serial.print(logTime);
+  Serial.print("\tRoll: ");
+  Serial.print(roll);
+  Serial.print("\tPitch: ");
+  Serial.print(pitch);
+  Serial.print("\tYaw: ");
+  Serial.print(yaw);
+  Serial.print("\tGyroX: ");
+  Serial.print(GyroX);
+  Serial.print("\tGyroY: ");
+  Serial.print(GyroY);
+  Serial.print("\tGyroZ: ");
+
+  //Sending alert if roll exceeds threshold
+  if (abs(roll) > alertThreshold) {
+    Serial.print(GyroZ);
+    Serial.print("\tALERT: Roll angle exceeds ");
+    Serial.print(alertThreshold);
+    Serial.println(" degrees!");
+  }
+
+  else {
+    Serial.println(GyroZ);
+  }
+
+  //Checking if there are input to change threshold
+  if (Serial.available()) {
+    char input = Serial.read();
+    if (input == 'w') {
+      alertThreshold += 5;
+      if (alertThreshold > 90) {
+        alertThreshold = 90; //Maximal
+        Serial.print("Threshold is at maximum: ");
+        Serial.println(alertThreshold);
+      } else {
+        Serial.print("Threshold increased to: ");
+        Serial.println(alertThreshold);
+      }
+    } 
+    else if (input == 's') {
+      alertThreshold -= 5;
+      if (alertThreshold < 5) {
+        alertThreshold = 5; //Minimal
+        Serial.print("Threshold is at minimum: ");
+        Serial.println(alertThreshold);
+      } else {
+        Serial.print("Threshold decreased to: ");
+        Serial.println(alertThreshold);
+      }
+    }
+  }
+
+
 }
 
 void calculate_IMU_error() {
@@ -170,8 +226,14 @@ void calculate_IMU_error() {
     AccY = (int16_t)(Wire.read() << 8 | Wire.read()) / 16384.0;
     AccZ = (int16_t)(Wire.read() << 8 | Wire.read()) / 16384.0;
 
+    if ((AccX != 0) && (AccY != 0) && (AccZ != 0)) {
     AccErrorX += (atan(AccY / sqrt(pow(AccX, 2) + pow(AccZ, 2))) * 180 / PI);
     AccErrorY += (atan(-1 * AccX / sqrt(pow(AccY, 2) + pow(AccZ, 2))) * 180 / PI);
+    } else {
+      AccErrorX += 0.7125;
+      AccErrorY += 0.7125;
+    }
+
     c++;
   }
   AccErrorX /= 200;
